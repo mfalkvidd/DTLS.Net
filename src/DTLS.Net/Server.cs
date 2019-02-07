@@ -182,10 +182,12 @@ namespace DTLS
                 }
 				pem = reader.ReadPemObject();
 			}
-			_Certificate = new Certificate();
-			_Certificate.CertChain = chain;
-			_Certificate.CertificateType = TCertificateType.X509;
-		}
+            _Certificate = new Certificate
+            {
+                CertChain = chain,
+                CertificateType = TCertificateType.X509
+            };
+        }
 
         public string GetClientPSKIdentity(EndPoint clientEndPoint)
         {
@@ -209,8 +211,7 @@ namespace DTLS
 
         private void ProcessRecord(object state)
         {
-            DTLSRecord record = state as DTLSRecord;
-            if (record != null)
+            if (state is DTLSRecord record)
             {
                 SocketAddress address = null;
                 Session session = null;
@@ -320,8 +321,10 @@ namespace DTLS
                             }
                             catch
                             {
-                                alertRecord = new AlertRecord();
-                                alertRecord.AlertLevel = TAlertLevel.Fatal;
+                                alertRecord = new AlertRecord
+                                {
+                                    AlertLevel = TAlertLevel.Fatal
+                                };
                             }
                             if (alertRecord.AlertLevel == TAlertLevel.Fatal)
                                 _Sessions.Remove(session, address);
@@ -343,10 +346,7 @@ namespace DTLS
                             {
                                 long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
                                 byte[] data = session.Cipher.DecodeCiphertext(sequenceNumber, (byte)TRecordType.ApplicationData, record.Fragment, 0, record.Fragment.Length);
-                                if (DataReceived != null)
-                                {
-                                    DataReceived(record.RemoteEndPoint, data);
-                                }
+                                DataReceived?.Invoke(record.RemoteEndPoint, data);
                             }
                         }
                         break;
@@ -396,8 +396,7 @@ namespace DTLS
                         }
                     }
                 }
-                Socket socket = sender as Socket;
-                if (socket != null)
+                if (sender is Socket socket)
                 {
                     System.Net.EndPoint remoteEndPoint;
                     if (socket.AddressFamily == AddressFamily.InterNetwork)
@@ -435,10 +434,12 @@ namespace DTLS
             {
                 try
                 {
-                    DTLSRecord record = new DTLSRecord();
-                    record.RecordType = TRecordType.ApplicationData;
-                    record.Epoch = session.Epoch;
-                    record.SequenceNumber = session.NextSequenceNumber();
+                    DTLSRecord record = new DTLSRecord
+                    {
+                        RecordType = TRecordType.ApplicationData,
+                        Epoch = session.Epoch,
+                        SequenceNumber = session.NextSequenceNumber()
+                    };
                     if (session.Version != null)
                         record.Version = session.Version;
                     long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
@@ -472,10 +473,12 @@ namespace DTLS
         {
             if (session != null)
             {
-                DTLSRecord record = new DTLSRecord();
-                record.RecordType = TRecordType.Alert;
-                record.Epoch = session.Epoch;
-                record.SequenceNumber = session.NextSequenceNumber();
+                DTLSRecord record = new DTLSRecord
+                {
+                    RecordType = TRecordType.Alert,
+                    Epoch = session.Epoch,
+                    SequenceNumber = session.NextSequenceNumber()
+                };
                 if (session.Version != null)
                     record.Version = session.Version;
                 long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
@@ -517,11 +520,13 @@ namespace DTLS
 
 			if (_Socket != null)
 			{
-                _Handshake = new ServerHandshake(_Socket, _MaxPacketSize, _PSKIdentities, _SupportedCipherSuites, _RequireClientCertificate, ValidatePSK);
-				_Handshake.Certificate = _Certificate;
-				_Handshake.PrivateKey = _PrivateKey;
-				_Handshake.Sessions = _Sessions;
-				_Socket.Bind(_LocalEndPoint);
+                _Handshake = new ServerHandshake(_Socket, _MaxPacketSize, _PSKIdentities, _SupportedCipherSuites, _RequireClientCertificate, ValidatePSK)
+                {
+                    Certificate = _Certificate,
+                    PrivateKey = _PrivateKey,
+                    Sessions = _Sessions
+                };
+                _Socket.Bind(_LocalEndPoint);
 				StartReceive(_Socket);
 			}
 

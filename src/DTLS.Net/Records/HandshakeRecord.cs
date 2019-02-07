@@ -91,13 +91,15 @@ namespace DTLS
 
 		public static HandshakeRecord Deserialise(System.IO.Stream stream)
 		{
-			HandshakeRecord result = new HandshakeRecord();
-			result._MessageType = (THandshakeType)stream.ReadByte();
-			result._Length = NetworkByteOrderConverter.ToUInt24(stream);
-			result._MessageSeq = NetworkByteOrderConverter.ToUInt16(stream);
-			result._FragmentOffset = NetworkByteOrderConverter.ToUInt24(stream);
-			result._FragmentLength = NetworkByteOrderConverter.ToUInt24(stream);
-			return result;
+            HandshakeRecord result = new HandshakeRecord
+            {
+                _MessageType = (THandshakeType)stream.ReadByte(),
+                _Length = NetworkByteOrderConverter.ToUInt24(stream),
+                _MessageSeq = NetworkByteOrderConverter.ToUInt16(stream),
+                _FragmentOffset = NetworkByteOrderConverter.ToUInt24(stream),
+                _FragmentLength = NetworkByteOrderConverter.ToUInt24(stream)
+            };
+            return result;
 		}
 
 		public void Serialise(System.IO.Stream stream)

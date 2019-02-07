@@ -75,8 +75,10 @@ namespace DTLS
             ushort pskIdentityLength = NetworkByteOrderConverter.ToUInt16(stream);
             if (pskIdentityLength > 0)
             {
-                result = new PSKClientKeyExchange();
-                result._PSKIdentity = new byte[pskIdentityLength];
+                result = new PSKClientKeyExchange
+                {
+                    _PSKIdentity = new byte[pskIdentityLength]
+                };
                 stream.Read(result._PSKIdentity, 0, pskIdentityLength);
             }
 			return result;			

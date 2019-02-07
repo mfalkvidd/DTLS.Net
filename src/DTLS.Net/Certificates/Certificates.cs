@@ -152,8 +152,7 @@ namespace DTLS
         public static byte[] GenerateCertificate(CertificateSubject subject, CertificateInfo issuer, DateTime startDate, DateTime expiryDate, SignatureHashAlgorithm signatureAlgorithm, TCertificateFormat certificateFormat)
         {
             byte[] result = null;
-            AsymmetricKeyParameter privateKey = issuer.PrivateKey as AsymmetricKeyParameter;
-            if (privateKey != null)
+            if (issuer.PrivateKey is AsymmetricKeyParameter privateKey)
             {
 
                 CryptoApiRandomGenerator randomGenerator = new CryptoApiRandomGenerator();
@@ -190,8 +189,7 @@ namespace DTLS
         public static byte[] GenerateIntermediateCACertificate(CertificateSubject subject, CertificateInfo issuer, DateTime startDate, DateTime expiryDate, SignatureHashAlgorithm signatureAlgorithm, TCertificateFormat certificateFormat)
         {
             byte[] result = null;
-            AsymmetricKeyParameter privateKey = issuer.PrivateKey as AsymmetricKeyParameter;
-            if (privateKey != null)
+            if (issuer.PrivateKey is AsymmetricKeyParameter privateKey)
             {
                 CryptoApiRandomGenerator randomGenerator = new CryptoApiRandomGenerator();
                 SecureRandom random = new SecureRandom(randomGenerator);

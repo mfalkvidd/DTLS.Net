@@ -105,10 +105,12 @@ namespace DTLS
 			{
 				_Extensions = new Extensions();
 			}
-			Extension item = new Extension();
-			item.ExtensionType = extension.ExtensionType;
-			item.SpecifcExtension = extension;
-			_Extensions.Add(item);
+            Extension item = new Extension
+            {
+                ExtensionType = extension.ExtensionType,
+                SpecifcExtension = extension
+            };
+            _Extensions.Add(item);
 		}
 
 		public int CalculateSize(Version version)
@@ -123,10 +125,12 @@ namespace DTLS
 
 		public static ServerHello Deserialise(Stream stream)
 		{
-			ServerHello result = new ServerHello();
-			result._ServerVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte());
-			result._Random = RandomData.Deserialise(stream);
-			int length = stream.ReadByte();
+            ServerHello result = new ServerHello
+            {
+                _ServerVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte()),
+                _Random = RandomData.Deserialise(stream)
+            };
+            int length = stream.ReadByte();
 			if (length > 0)
 			{
 				result._SessionID = new byte[length];

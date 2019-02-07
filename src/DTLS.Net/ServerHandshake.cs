@@ -120,10 +120,12 @@ namespace DTLS
                                         version = ServerVersion;
                                     if (session == null)
                                     {
-                                        session = new Session();
-                                        session.SessionID = Guid.NewGuid();
-                                        session.RemoteEndPoint = record.RemoteEndPoint;
-                                        session.Version = version;
+                                        session = new Session
+                                        {
+                                            SessionID = Guid.NewGuid(),
+                                            RemoteEndPoint = record.RemoteEndPoint,
+                                            Version = version
+                                        };
                                         Sessions.AddSession(address, session);
                                     }
                                     else
@@ -134,9 +136,11 @@ namespace DTLS
                                     session.ClientEpoch = record.Epoch;
                                     session.ClientSequenceNumber = record.SequenceNumber;
                                     //session.Handshake.UpdateHandshakeHash(data);
-                                    HelloVerifyRequest helloVerifyRequest = new HelloVerifyRequest();
-                                    helloVerifyRequest.Cookie = cookie;
-                                    helloVerifyRequest.ServerVersion = ServerVersion;
+                                    HelloVerifyRequest helloVerifyRequest = new HelloVerifyRequest
+                                    {
+                                        Cookie = cookie,
+                                        ServerVersion = ServerVersion
+                                    };
                                     SendResponse(session, (IHandshakeMessage)helloVerifyRequest, 0);
 
                                 }
@@ -178,8 +182,10 @@ namespace DTLS
                                             if (session == null)
                                             {
                                                 //need to Find Session
-                                                session = new Session();
-                                                session.SessionID = Guid.NewGuid();
+                                                session = new Session
+                                                {
+                                                    SessionID = Guid.NewGuid()
+                                                };
                                                 session.NextSequenceNumber();
                                                 session.RemoteEndPoint = record.RemoteEndPoint;
                                                 Sessions.AddSession(address, session);
@@ -283,11 +289,13 @@ namespace DTLS
                                                 SendResponse(session, Certificate, session.Handshake.MessageSequence);
                                                 session.Handshake.MessageSequence++;
                                             }
-                                            ECDHEKeyExchange keyExchange = new ECDHEKeyExchange();
-                                            keyExchange.Curve = curve;
-                                            keyExchange.KeyExchangeAlgorithm = keyExchangeAlgorithm;
-                                            keyExchange.ClientRandom = clientHello.Random;
-                                            keyExchange.ServerRandom = serverHello.Random;
+                                            ECDHEKeyExchange keyExchange = new ECDHEKeyExchange
+                                            {
+                                                Curve = curve,
+                                                KeyExchangeAlgorithm = keyExchangeAlgorithm,
+                                                ClientRandom = clientHello.Random,
+                                                ServerRandom = serverHello.Random
+                                            };
                                             keyExchange.GenerateEphemeralKey();
                                             session.Handshake.KeyExchange = keyExchange;
                                             if (session.Version == DTLSRecord.DefaultVersion)
@@ -306,11 +314,13 @@ namespace DTLS
                                         }
                                         else if (keyExchangeAlgorithm == TKeyExchangeAlgorithm.ECDHE_PSK)
                                         {
-                                            ECDHEKeyExchange keyExchange = new ECDHEKeyExchange();
-                                            keyExchange.Curve = curve;
-                                            keyExchange.KeyExchangeAlgorithm = keyExchangeAlgorithm;
-                                            keyExchange.ClientRandom = clientHello.Random;
-                                            keyExchange.ServerRandom = serverHello.Random;
+                                            ECDHEKeyExchange keyExchange = new ECDHEKeyExchange
+                                            {
+                                                Curve = curve,
+                                                KeyExchangeAlgorithm = keyExchangeAlgorithm,
+                                                ClientRandom = clientHello.Random,
+                                                ServerRandom = serverHello.Random
+                                            };
                                             keyExchange.GenerateEphemeralKey();
                                             session.Handshake.KeyExchange = keyExchange;
                                             ECDHEPSKServerKeyExchange serverKeyExchange = new ECDHEPSKServerKeyExchange(keyExchange);
@@ -320,10 +330,12 @@ namespace DTLS
                                         }
                                         else if (keyExchangeAlgorithm == TKeyExchangeAlgorithm.PSK)
                                         {
-                                            PSKKeyExchange keyExchange = new PSKKeyExchange();
-                                            keyExchange.KeyExchangeAlgorithm = keyExchangeAlgorithm;
-                                            keyExchange.ClientRandom = clientHello.Random;
-                                            keyExchange.ServerRandom = serverHello.Random;
+                                            PSKKeyExchange keyExchange = new PSKKeyExchange
+                                            {
+                                                KeyExchangeAlgorithm = keyExchangeAlgorithm,
+                                                ClientRandom = clientHello.Random,
+                                                ServerRandom = serverHello.Random
+                                            };
                                             session.Handshake.KeyExchange = keyExchange;
                                             //Need to be able to hint identity?? for PSK if not hinting don't really need key exchange message
                                             //PSKServerKeyExchange serverKeyExchange = new PSKServerKeyExchange();
@@ -457,8 +469,10 @@ namespace DTLS
                                     SendChangeCipherSpec(session);
                                     session.Handshake.UpdateHandshakeHash(data);
                                     handshakeHash = session.Handshake.GetHash();
-                                    Finished serverFinished = new Finished();
-                                    serverFinished.VerifyData = TLSUtils.GetVerifyData(session.Version,session.Handshake,false, false, handshakeHash);
+                                    Finished serverFinished = new Finished
+                                    {
+                                        VerifyData = TLSUtils.GetVerifyData(session.Version, session.Handshake, false, false, handshakeHash)
+                                    };
                                     SendResponse(session, serverFinished, session.Handshake.MessageSequence);
                                     session.Handshake.MessageSequence++;
                                 }
@@ -487,20 +501,24 @@ namespace DTLS
 			}
 			else
 			{
-				
-				DTLSRecord record = new DTLSRecord();
-				record.RecordType = TRecordType.Handshake;
-				record.Epoch = session.Epoch;
-				record.SequenceNumber = session.NextSequenceNumber();
-				record.Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size];
-				if (session.Version != null)
+
+                DTLSRecord record = new DTLSRecord
+                {
+                    RecordType = TRecordType.Handshake,
+                    Epoch = session.Epoch,
+                    SequenceNumber = session.NextSequenceNumber(),
+                    Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size]
+                };
+                if (session.Version != null)
 					record.Version = session.Version;
-				HandshakeRecord handshakeRecord = new HandshakeRecord();
-				handshakeRecord.MessageType = handshakeMessage.MessageType;
-				handshakeRecord.MessageSeq = messageSequence;
-				handshakeRecord.Length = (uint)size;
-				handshakeRecord.FragmentLength = (uint)size;
-				using (MemoryStream stream = new MemoryStream(record.Fragment))
+                HandshakeRecord handshakeRecord = new HandshakeRecord
+                {
+                    MessageType = handshakeMessage.MessageType,
+                    MessageSeq = messageSequence,
+                    Length = (uint)size,
+                    FragmentLength = (uint)size
+                };
+                using (MemoryStream stream = new MemoryStream(record.Fragment))
 				{
 					handshakeRecord.Serialise(stream);
 					handshakeMessage.Serialise(stream, session.Version);
@@ -568,19 +586,23 @@ namespace DTLS
 		private DTLSRecord CreateRecord(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
 		{
 			int size = handshakeMessage.CalculateSize(session.Version);
-			DTLSRecord record = new DTLSRecord();
-			record.RecordType = TRecordType.Handshake;
-			record.Epoch = session.Epoch;
-			record.SequenceNumber = session.NextSequenceNumber();
-			record.Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size];
-			if (session.Version != null)
+            DTLSRecord record = new DTLSRecord
+            {
+                RecordType = TRecordType.Handshake,
+                Epoch = session.Epoch,
+                SequenceNumber = session.NextSequenceNumber(),
+                Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size]
+            };
+            if (session.Version != null)
 				record.Version = session.Version;
-			HandshakeRecord handshakeRecord = new HandshakeRecord();
-			handshakeRecord.MessageType = handshakeMessage.MessageType;
-			handshakeRecord.MessageSeq = messageSequence;
-			handshakeRecord.Length = (uint)size;
-			handshakeRecord.FragmentLength = (uint)size;
-			using (MemoryStream stream = new MemoryStream(record.Fragment))
+            HandshakeRecord handshakeRecord = new HandshakeRecord
+            {
+                MessageType = handshakeMessage.MessageType,
+                MessageSeq = messageSequence,
+                Length = (uint)size,
+                FragmentLength = (uint)size
+            };
+            using (MemoryStream stream = new MemoryStream(record.Fragment))
 			{
 				handshakeRecord.Serialise(stream);
 				handshakeMessage.Serialise(stream, session.Version);
@@ -603,12 +625,14 @@ namespace DTLS
 			int size = 1;
 			int responseSize = DTLSRecord.RECORD_OVERHEAD + size;
 			byte[] response = new byte[responseSize];
-			DTLSRecord record = new DTLSRecord();
-			record.RecordType = TRecordType.ChangeCipherSpec;
-			record.Epoch = session.Epoch;
-			record.SequenceNumber = session.NextSequenceNumber();
-			record.Fragment = new byte[size];
-			record.Fragment[0] = 1;
+            DTLSRecord record = new DTLSRecord
+            {
+                RecordType = TRecordType.ChangeCipherSpec,
+                Epoch = session.Epoch,
+                SequenceNumber = session.NextSequenceNumber(),
+                Fragment = new byte[size]
+            };
+            record.Fragment[0] = 1;
 			if (session.Version != null)
 				record.Version = session.Version;
 			using (MemoryStream stream = new MemoryStream(response))

@@ -106,14 +106,16 @@ namespace DTLS
 
 		public static DTLSRecord Deserialise(Stream stream)
 		{
-			DTLSRecord result = new DTLSRecord();
-			result._RecordType = (TRecordType)stream.ReadByte();
-			// could check here for a valid type, and bail out if invalid
-			result._Version = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte());
-			result._Epoch = NetworkByteOrderConverter.ToUInt16(stream);
-			result._SequenceNumber = NetworkByteOrderConverter.ToInt48(stream);
-			result._Length = NetworkByteOrderConverter.ToUInt16(stream);
-			if (result._Length > 0)
+            DTLSRecord result = new DTLSRecord
+            {
+                _RecordType = (TRecordType)stream.ReadByte(),
+                // could check here for a valid type, and bail out if invalid
+                _Version = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte()),
+                _Epoch = NetworkByteOrderConverter.ToUInt16(stream),
+                _SequenceNumber = NetworkByteOrderConverter.ToInt48(stream),
+                _Length = NetworkByteOrderConverter.ToUInt16(stream)
+            };
+            if (result._Length > 0)
 			{
 				result._Fragment = new byte[result._Length];
 				int length = stream.Read(result._Fragment, 0, result._Length);

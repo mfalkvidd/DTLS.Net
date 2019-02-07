@@ -62,9 +62,11 @@ namespace DTLS
         
 		public static Finished Deserialise(Stream stream)
 		{
-			Finished result = new Finished();
-			result._VerifyData = new byte[12];
-			stream.Read(result._VerifyData, 0, 12);
+            Finished result = new Finished
+            {
+                _VerifyData = new byte[12]
+            };
+            stream.Read(result._VerifyData, 0, 12);
 			return result;
 		}
 

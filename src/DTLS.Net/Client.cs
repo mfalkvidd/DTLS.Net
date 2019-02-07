@@ -198,12 +198,14 @@ namespace DTLS
                             if (keyExchangeAlgorithm == TKeyExchangeAlgorithm.ECDHE_ECDSA)
                             {
                                 ECDHEServerKeyExchange serverKeyExchange = ECDHEServerKeyExchange.Deserialise(stream, _Version);
-                                ECDHEKeyExchange keyExchangeECDHE = new ECDHEKeyExchange();
-                                keyExchangeECDHE.CipherSuite = _HandshakeInfo.CipherSuite;
-                                keyExchangeECDHE.Curve = serverKeyExchange.EllipticCurve;
-                                keyExchangeECDHE.KeyExchangeAlgorithm = keyExchangeAlgorithm;
-                                keyExchangeECDHE.ClientRandom = _HandshakeInfo.ClientRandom;
-                                keyExchangeECDHE.ServerRandom = _HandshakeInfo.ServerRandom;
+                                ECDHEKeyExchange keyExchangeECDHE = new ECDHEKeyExchange
+                                {
+                                    CipherSuite = _HandshakeInfo.CipherSuite,
+                                    Curve = serverKeyExchange.EllipticCurve,
+                                    KeyExchangeAlgorithm = keyExchangeAlgorithm,
+                                    ClientRandom = _HandshakeInfo.ClientRandom,
+                                    ServerRandom = _HandshakeInfo.ServerRandom
+                                };
                                 keyExchangeECDHE.GenerateEphemeralKey();
                                 ECDHEClientKeyExchange clientKeyExchange = new ECDHEClientKeyExchange(keyExchangeECDHE.PublicKey);
                                 _ClientKeyExchange = clientKeyExchange;
@@ -213,12 +215,14 @@ namespace DTLS
                             else if (keyExchangeAlgorithm == TKeyExchangeAlgorithm.ECDHE_PSK)
                             {
                                 ECDHEPSKServerKeyExchange serverKeyExchange = ECDHEPSKServerKeyExchange.Deserialise(stream, _Version);
-                                ECDHEKeyExchange keyExchangeECDHE = new ECDHEKeyExchange();
-                                keyExchangeECDHE.CipherSuite = _HandshakeInfo.CipherSuite;
-                                keyExchangeECDHE.Curve = serverKeyExchange.EllipticCurve;
-                                keyExchangeECDHE.KeyExchangeAlgorithm = keyExchangeAlgorithm;
-                                keyExchangeECDHE.ClientRandom = _HandshakeInfo.ClientRandom;
-                                keyExchangeECDHE.ServerRandom = _HandshakeInfo.ServerRandom;
+                                ECDHEKeyExchange keyExchangeECDHE = new ECDHEKeyExchange
+                                {
+                                    CipherSuite = _HandshakeInfo.CipherSuite,
+                                    Curve = serverKeyExchange.EllipticCurve,
+                                    KeyExchangeAlgorithm = keyExchangeAlgorithm,
+                                    ClientRandom = _HandshakeInfo.ClientRandom,
+                                    ServerRandom = _HandshakeInfo.ServerRandom
+                                };
                                 keyExchangeECDHE.GenerateEphemeralKey();
                                 ECDHEPSKClientKeyExchange clientKeyExchange = new ECDHEPSKClientKeyExchange(keyExchangeECDHE.PublicKey);
                                 if (serverKeyExchange.PSKIdentityHint != null)
@@ -291,8 +295,10 @@ namespace DTLS
                             }
                             SendChangeCipherSpec();
                             byte[] handshakeHash = _HandshakeInfo.GetHash();
-                            Finished finished = new Finished();
-                            finished.VerifyData = TLSUtils.GetVerifyData(_Version,_HandshakeInfo,true, true, handshakeHash);
+                            Finished finished = new Finished
+                            {
+                                VerifyData = TLSUtils.GetVerifyData(_Version, _HandshakeInfo, true, true, handshakeHash)
+                            };
                             SendHandshakeMessage(finished, true);
 #if DEBUG
                             Console.Write("Handshake Hash:");
@@ -364,8 +370,10 @@ namespace DTLS
                         }
                         catch
                         {
-                            alertRecord = new AlertRecord();
-                            alertRecord.AlertLevel = TAlertLevel.Fatal;
+                            alertRecord = new AlertRecord
+                            {
+                                AlertLevel = TAlertLevel.Fatal
+                            };
                         }
                         if (alertRecord.AlertLevel == TAlertLevel.Fatal)
                         {
@@ -391,10 +399,7 @@ namespace DTLS
                         {
                             long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
                             byte[] data = _Cipher.DecodeCiphertext(sequenceNumber, (byte)TRecordType.ApplicationData, record.Fragment, 0, record.Fragment.Length);
-                            if (DataReceived != null)
-                            {
-                                DataReceived(record.RemoteEndPoint, data);
-                            }
+                            DataReceived?.Invoke(record.RemoteEndPoint, data);
                         }
                         _ServerSequenceNumber = record.SequenceNumber + 1;
                         break;
@@ -469,8 +474,7 @@ namespace DTLS
                         _TriggerProcessRecords.Set();
                     }
                 }
-                Socket socket = sender as Socket;
-                if (socket != null)
+                if (sender is Socket socket)
                 {
                     System.Net.EndPoint remoteEndPoint;
                     if (socket.AddressFamily == AddressFamily.InterNetwork)
@@ -505,10 +509,12 @@ namespace DTLS
         {
             try
             {
-                DTLSRecord record = new DTLSRecord();
-                record.RecordType = TRecordType.ApplicationData;
-                record.Epoch = _Epoch;
-                record.SequenceNumber = NextSequenceNumber();
+                DTLSRecord record = new DTLSRecord
+                {
+                    RecordType = TRecordType.ApplicationData,
+                    Epoch = _Epoch,
+                    SequenceNumber = NextSequenceNumber()
+                };
                 if (_Version != null)
                     record.Version = _Version;
                 long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
@@ -541,10 +547,12 @@ namespace DTLS
 
         private void SendAlert(TAlertLevel alertLevel, TAlertDescription alertDescription)
         {
-            DTLSRecord record = new DTLSRecord();
-            record.RecordType = TRecordType.Alert;
-            record.Epoch = _Epoch;
-            record.SequenceNumber = NextSequenceNumber();
+            DTLSRecord record = new DTLSRecord
+            {
+                RecordType = TRecordType.Alert,
+                Epoch = _Epoch,
+                SequenceNumber = NextSequenceNumber()
+            };
             if (_Version != null)
                 record.Version = _Version;
             long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
@@ -575,11 +583,13 @@ namespace DTLS
             int size = 1;
             int responseSize = DTLSRecord.RECORD_OVERHEAD + size;
             byte[] response = new byte[responseSize];
-            DTLSRecord record = new DTLSRecord();
-            record.RecordType = TRecordType.ChangeCipherSpec;
-            record.Epoch = _Epoch;
-            record.SequenceNumber = NextSequenceNumber();
-            record.Fragment = new byte[size];
+            DTLSRecord record = new DTLSRecord
+            {
+                RecordType = TRecordType.ChangeCipherSpec,
+                Epoch = _Epoch,
+                SequenceNumber = NextSequenceNumber(),
+                Fragment = new byte[size]
+            };
             record.Fragment[0] = 1;
             if (_Version != null)
                 record.Version = _Version;
@@ -598,10 +608,12 @@ namespace DTLS
 
         private void SendHello(byte[] cookie)
         {
-            ClientHello clientHello = new ClientHello();
-            clientHello.ClientVersion = SupportedVersion;
-            clientHello.Random = _HandshakeInfo.ClientRandom;
-            clientHello.Cookie = cookie;
+            ClientHello clientHello = new ClientHello
+            {
+                ClientVersion = SupportedVersion,
+                Random = _HandshakeInfo.ClientRandom,
+                Cookie = cookie
+            };
             ushort[] cipherSuites = new ushort[_SupportedCipherSuites.Count];
             int index = 0;
             foreach (TCipherSuite item in _SupportedCipherSuites)
@@ -648,16 +660,20 @@ namespace DTLS
             else
             {
 
-                DTLSRecord record = new DTLSRecord();
-                record.RecordType = TRecordType.Handshake;
-                record.Epoch = _Epoch;
-                record.SequenceNumber = NextSequenceNumber();
-                record.Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size];
+                DTLSRecord record = new DTLSRecord
+                {
+                    RecordType = TRecordType.Handshake,
+                    Epoch = _Epoch,
+                    SequenceNumber = NextSequenceNumber(),
+                    Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size]
+                };
                 if (_Version != null)
                     record.Version = _Version;
-                HandshakeRecord handshakeRecord = new HandshakeRecord();
-                handshakeRecord.MessageType = handshakeMessage.MessageType;
-                handshakeRecord.MessageSeq = _MessageSequence;
+                HandshakeRecord handshakeRecord = new HandshakeRecord
+                {
+                    MessageType = handshakeMessage.MessageType,
+                    MessageSeq = _MessageSequence
+                };
                 _MessageSequence++;
                 handshakeRecord.Length = (uint)size;
                 handshakeRecord.FragmentLength = (uint)size;
@@ -752,9 +768,11 @@ namespace DTLS
                 }
                 pem = reader.ReadPemObject();
             }
-            _Certificate = new Certificate();
-            _Certificate.CertChain = chain;
-            _Certificate.CertificateType = TCertificateType.X509;
+            _Certificate = new Certificate
+            {
+                CertChain = chain,
+                CertificateType = TCertificateType.X509
+            };
         }
 
         private void StartReceive(Socket socket)

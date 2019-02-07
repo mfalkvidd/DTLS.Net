@@ -83,9 +83,11 @@ namespace DTLS
 			int length = stream.ReadByte();
 			if (length > 0)
 			{
-				result = new ECDHEClientKeyExchange();
-				result._PublicKeyBytes = new byte[length];
-				stream.Read(result._PublicKeyBytes, 0, length);
+                result = new ECDHEClientKeyExchange
+                {
+                    _PublicKeyBytes = new byte[length]
+                };
+                stream.Read(result._PublicKeyBytes, 0, length);
 			}
 			return result;			
 		}

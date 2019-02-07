@@ -106,8 +106,10 @@ namespace DTLS
             ushort pskIdentityLength = NetworkByteOrderConverter.ToUInt16(stream);
             if (pskIdentityLength > 0)
             {
-                result = new ECDHEPSKClientKeyExchange();
-                result._PSKIdentity = new byte[pskIdentityLength];
+                result = new ECDHEPSKClientKeyExchange
+                {
+                    _PSKIdentity = new byte[pskIdentityLength]
+                };
                 stream.Read(result._PSKIdentity, 0, pskIdentityLength);
                 int length = stream.ReadByte();
                 if (length > 0)

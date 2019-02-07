@@ -234,9 +234,11 @@ namespace DTLS
 
         public static ECDHEServerKeyExchange Deserialise(System.IO.Stream stream, Version version)
         {
-            ECDHEServerKeyExchange result = new ECDHEServerKeyExchange();
-            result._EllipticCurveType = (TEllipticCurveType)stream.ReadByte();
-            result._EllipticCurve = (TEllipticCurve)NetworkByteOrderConverter.ToUInt16(stream);
+            ECDHEServerKeyExchange result = new ECDHEServerKeyExchange
+            {
+                _EllipticCurveType = (TEllipticCurveType)stream.ReadByte(),
+                _EllipticCurve = (TEllipticCurve)NetworkByteOrderConverter.ToUInt16(stream)
+            };
             int length = stream.ReadByte();
 			if (length > 0)
 			{

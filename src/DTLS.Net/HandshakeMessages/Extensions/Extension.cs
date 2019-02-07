@@ -84,9 +84,11 @@ namespace DTLS
 			Extension result = null;
 			if (stream.Position < stream.Length)
 			{
-				result = new Extension();
-				result._ExtensionType = (TExtensionType)NetworkByteOrderConverter.ToUInt16(stream);
-				ushort length = NetworkByteOrderConverter.ToUInt16(stream);
+                result = new Extension
+                {
+                    _ExtensionType = (TExtensionType)NetworkByteOrderConverter.ToUInt16(stream)
+                };
+                ushort length = NetworkByteOrderConverter.ToUInt16(stream);
 				if (length > 0)
 				{
 					if (result._ExtensionType == TExtensionType.EllipticCurves)

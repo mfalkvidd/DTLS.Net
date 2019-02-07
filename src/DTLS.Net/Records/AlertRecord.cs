@@ -83,17 +83,21 @@ namespace DTLS
 
         public static AlertRecord Deserialise(byte[] data)
         {
-            AlertRecord result = new AlertRecord();
-            result._AlertLevel = (TAlertLevel)data[0];
-            result._AlertDescription = (TAlertDescription)data[1];
+            AlertRecord result = new AlertRecord
+            {
+                _AlertLevel = (TAlertLevel)data[0],
+                _AlertDescription = (TAlertDescription)data[1]
+            };
             return result;
         }
 
         public static AlertRecord Deserialise(System.IO.Stream stream)
         {
-            AlertRecord result = new AlertRecord();
-            result._AlertLevel = (TAlertLevel)stream.ReadByte();
-            result._AlertDescription = (TAlertDescription)stream.ReadByte();
+            AlertRecord result = new AlertRecord
+            {
+                _AlertLevel = (TAlertLevel)stream.ReadByte(),
+                _AlertDescription = (TAlertDescription)stream.ReadByte()
+            };
             return result;
         }
 

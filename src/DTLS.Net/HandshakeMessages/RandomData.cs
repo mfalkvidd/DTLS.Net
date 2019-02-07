@@ -54,9 +54,11 @@ namespace DTLS
 
 		public static RandomData Deserialise(Stream stream)
 		{
-			RandomData result = new RandomData();
-			result._UnixTime = NetworkByteOrderConverter.ToUInt32(stream);
-			stream.Read(result._RandomBytes, 0, 28);
+            RandomData result = new RandomData
+            {
+                _UnixTime = NetworkByteOrderConverter.ToUInt32(stream)
+            };
+            stream.Read(result._RandomBytes, 0, 28);
 			return result;
 		}
 

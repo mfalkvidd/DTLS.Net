@@ -67,9 +67,11 @@ namespace DTLS
 
 		public static HelloVerifyRequest Deserialise(Stream stream)
 		{
-			HelloVerifyRequest result = new HelloVerifyRequest();
-			result._ServerVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte());
-			int length = stream.ReadByte();
+            HelloVerifyRequest result = new HelloVerifyRequest
+            {
+                _ServerVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte())
+            };
+            int length = stream.ReadByte();
 			if (length > 0)
 			{
 				result._Cookie = new byte[length];

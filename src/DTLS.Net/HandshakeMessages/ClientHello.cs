@@ -158,10 +158,12 @@ namespace DTLS
 
 		public static ClientHello Deserialise(Stream stream)
 		{
-			ClientHello result = new ClientHello();
-			result._ClientVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte());
-			result._Random = RandomData.Deserialise(stream);
-			int length = stream.ReadByte();
+            ClientHello result = new ClientHello
+            {
+                _ClientVersion = new Version(255 - stream.ReadByte(), 255 - stream.ReadByte()),
+                _Random = RandomData.Deserialise(stream)
+            };
+            int length = stream.ReadByte();
 			if (length > 0)
 			{
 				result._SessionID = new byte[length];
