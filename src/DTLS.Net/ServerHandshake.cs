@@ -22,52 +22,56 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace DTLS
 {
-	internal class ServerHandshake
-	{
-		private Socket _Socket;
-		private int _MaxPacketSize;
+    internal class ServerHandshake
+    {
+        private Socket _Socket;
+        private int _MaxPacketSize;
         private PSKIdentities _PSKIdentities;
-		private byte[] _HelloSecret = new byte[] { 0x12, 0x84, 0x65, 0x94, 0xD5, 0x5E, 0x4B, 0x3A, 0xF3, 0x68, 0x56, 0x6F, 0xD7, 0x1B, 0x09, 0x8A };
-		private Dictionary<TCipherSuite, object> _SupportedCipherSuites;
+        private byte[] _HelloSecret = new byte[] { 0x12, 0x84, 0x65, 0x94, 0xD5, 0x5E, 0x4B, 0x3A, 0xF3, 0x68, 0x56, 0x6F, 0xD7, 0x1B, 0x09, 0x8A };
+        private Dictionary<TCipherSuite, object> _SupportedCipherSuites;
         private bool _RequireClientCertificate;
         private DTLS.Server.ValidatePSKEventHandler _ValidatePSK;
 
         public Certificate Certificate { get; set; }
-		public Org.BouncyCastle.Crypto.AsymmetricKeyParameter PrivateKey { get; set; }
-		public Version ServerVersion { get; set; }
-		public Sessions Sessions { get; set; }
-		private const int HANDSHAKE_DWELL_TIME = 10;
-		public static int HandshakeTimeout { get; set; } = 5000;
+        public Org.BouncyCastle.Crypto.AsymmetricKeyParameter PrivateKey { get; set; }
+        public Version ServerVersion { get; set; }
+        public Sessions Sessions { get; set; }
+        private const int HANDSHAKE_DWELL_TIME = 10;
+        public static int HandshakeTimeout { get; set; } = 25000;
 
 
 
         public ServerHandshake(Socket socket, int maxPacketSize, PSKIdentities pskIdentities, List<TCipherSuite> supportedCipherSuites, bool requireClientCertificate, DTLS.Server.ValidatePSKEventHandler validatePSK)
-		{
-			this._Socket = socket;
+        {
+            this._Socket = socket;
             _ValidatePSK = validatePSK;
             _MaxPacketSize = maxPacketSize;
             _PSKIdentities = pskIdentities;
-			_SupportedCipherSuites = new Dictionary<TCipherSuite, object>();
+            _SupportedCipherSuites = new Dictionary<TCipherSuite, object>();
             _RequireClientCertificate = requireClientCertificate;
             foreach (TCipherSuite item in supportedCipherSuites)
-			{
-				_SupportedCipherSuites.Add(item, null);
-			}
-			ServerVersion = new Version(1, 2);
+            {
+                _SupportedCipherSuites.Add(item, null);
+            }
+            ServerVersion = new Version(1, 2);
 
-		}
+        }
 
 
         public void ProcessHandshake(DTLSRecord record)
         {
+#if DEBUG
+            Console.WriteLine($"ProcessHandshake epoch={record.Epoch} type={record.RecordType} endpoint={record.RemoteEndPoint} sequencenumber={record.SequenceNumber} version={record.Version} length={record.Fragment.Length}");
+#endif
             SocketAddress address = record.RemoteEndPoint.Serialize();
             Session session = Sessions.GetSession(address);
             byte[] data;
@@ -91,10 +95,17 @@ namespace DTLS
                     data = session.Cipher.DecodeCiphertext(sequenceNumber, (byte)TRecordType.Handshake, record.Fragment, 0, record.Fragment.Length);
                 }
                 else
+                {
                     data = record.Fragment;
+                }
+#if DEBUG
+                Console.WriteLine($"sessionID={session.SessionID} cEpoch={session.ClientEpoch} cSequenceNumber={session.ClientSequenceNumber} Epoch={session.Epoch} identity={session.PSKIdentity} version={session.Version}");
+#endif
             }
             else
+            {
                 data = record.Fragment;
+            }
             using (MemoryStream stream = new MemoryStream(data))
             {
                 HandshakeRecord handshakeRecord = HandshakeRecord.Deserialise(stream);
@@ -112,6 +123,11 @@ namespace DTLS
                             ClientHello clientHello = ClientHello.Deserialise(stream);
                             if (clientHello != null)
                             {
+#if DEBUG
+                                Console.WriteLine($"ClientHello: version={clientHello.ClientVersion} mtype={clientHello.MessageType}");
+                                Console.Write("sessionID=");
+                                TLSUtils.WriteToConsole(clientHello.SessionID);
+#endif
 
                                 byte[] cookie = clientHello.CalculateCookie(record.RemoteEndPoint, _HelloSecret);
 
@@ -143,8 +159,7 @@ namespace DTLS
                                         Cookie = cookie,
                                         ServerVersion = ServerVersion
                                     };
-                                    SendResponse(session, (IHandshakeMessage)helloVerifyRequest, 0);
-
+                                    SendResponse(session, helloVerifyRequest, 0);
                                 }
                                 else
                                 {
@@ -358,7 +373,7 @@ namespace DTLS
                             Certificate clientCertificate = Certificate.Deserialise(stream, TCertificateType.X509);
                             if (clientCertificate.CertChain.Count > 0)
                             {
-                                session.CertificateInfo = Certificates.GetCertificateInfo(clientCertificate.CertChain[0], TCertificateFormat.CER);                                
+                                session.CertificateInfo = Certificates.GetCertificateInfo(clientCertificate.CertChain[0], TCertificateFormat.CER);
                             }
                             session.Handshake.UpdateHandshakeHash(data);
                             break;
@@ -456,7 +471,7 @@ namespace DTLS
                             if (session != null)
                             {
                                 byte[] handshakeHash = session.Handshake.GetHash();
-                                byte[] calculatedVerifyData = TLSUtils.GetVerifyData(session.Version,session.Handshake,false, true, handshakeHash);
+                                byte[] calculatedVerifyData = TLSUtils.GetVerifyData(session.Version, session.Handshake, false, true, handshakeHash);
 #if DEBUG
                                 Console.Write("Handshake Hash:");
                                 TLSUtils.WriteToConsole(handshakeHash);
@@ -493,16 +508,19 @@ namespace DTLS
 
 
 
-		private void SendResponse(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
-		{
-			int size = handshakeMessage.CalculateSize(session.Version);
-			int maxPayloadSize = _MaxPacketSize - DTLSRecord.RECORD_OVERHEAD + HandshakeRecord.RECORD_OVERHEAD;
-			if (size > maxPayloadSize)
-			{
+        private void SendResponse(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
+        {
+#if DEBUG
+            Console.WriteLine($"SendResponse using id={session.SessionID} epoch={session.Epoch} identity={session.PSKIdentity} messageSequence={messageSequence} type={handshakeMessage.MessageType}");
+#endif
+            int size = handshakeMessage.CalculateSize(session.Version);
+            int maxPayloadSize = _MaxPacketSize - DTLSRecord.RECORD_OVERHEAD + HandshakeRecord.RECORD_OVERHEAD;
+            if (size > maxPayloadSize)
+            {
 
-			}
-			else
-			{
+            }
+            else
+            {
 
                 DTLSRecord record = new DTLSRecord
                 {
@@ -512,7 +530,7 @@ namespace DTLS
                     Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size]
                 };
                 if (session.Version != null)
-					record.Version = session.Version;
+                    record.Version = session.Version;
                 HandshakeRecord handshakeRecord = new HandshakeRecord
                 {
                     MessageType = handshakeMessage.MessageType,
@@ -521,10 +539,10 @@ namespace DTLS
                     FragmentLength = (uint)size
                 };
                 using (MemoryStream stream = new MemoryStream(record.Fragment))
-				{
-					handshakeRecord.Serialise(stream);
-					handshakeMessage.Serialise(stream, session.Version);
-				}
+                {
+                    handshakeRecord.Serialise(stream);
+                    handshakeMessage.Serialise(stream, session.Version);
+                }
                 if (handshakeMessage.MessageType != THandshakeType.HelloVerifyRequest)
                 {
                     session.Handshake.UpdateHandshakeHash(record.Fragment);
@@ -532,62 +550,60 @@ namespace DTLS
                 int responseSize = DTLSRecord.RECORD_OVERHEAD + HandshakeRecord.RECORD_OVERHEAD + size;
                 if (session.Cipher != null)
                 {
-                   long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;                   
-                   record.Fragment = session.Cipher.EncodePlaintext(sequenceNumber, (byte)TRecordType.Handshake, record.Fragment, 0, record.Fragment.Length);
-                   responseSize = DTLSRecord.RECORD_OVERHEAD + record.Fragment.Length;
+                    long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
+                    record.Fragment = session.Cipher.EncodePlaintext(sequenceNumber, (byte)TRecordType.Handshake, record.Fragment, 0, record.Fragment.Length);
+                    responseSize = DTLSRecord.RECORD_OVERHEAD + record.Fragment.Length;
                 }
                 byte[] response = new byte[responseSize];
-				using (MemoryStream stream = new MemoryStream(response))
-				{
-					record.Serialise(stream);
-				}
+                using (MemoryStream stream = new MemoryStream(response))
+                {
+                    record.Serialise(stream);
+                }
                 SocketAsyncEventArgs parameters = new SocketAsyncEventArgs()
                 {
                     RemoteEndPoint = session.RemoteEndPoint
                 };
                 parameters.SetBuffer(response, 0, responseSize);
                 _Socket.SendToAsync(parameters);
-			}
+            }
+        }
 
+        private void SendResponseEnd(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
+        {
+            int size = handshakeMessage.CalculateSize(session.Version);
+            int maxPayloadSize = _MaxPacketSize - DTLSRecord.RECORD_OVERHEAD + HandshakeRecord.RECORD_OVERHEAD;
+            if (size > maxPayloadSize)
+            {
 
-		}
+            }
+            else
+            {
+                DTLSRecord record = CreateRecord(session, handshakeMessage, messageSequence);
+                session.Handshake.MessageSequence++;
+                DTLSRecord recordEnd = CreateRecord(session, new ServerHelloDone(), session.Handshake.MessageSequence);
+                session.Handshake.MessageSequence++;
+                int responseSize = DTLSRecord.RECORD_OVERHEAD + record.Fragment.Length + DTLSRecord.RECORD_OVERHEAD + recordEnd.Fragment.Length;
 
-		private void SendResponseEnd(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
-		{
-			int size = handshakeMessage.CalculateSize(session.Version);
-			int maxPayloadSize = _MaxPacketSize - DTLSRecord.RECORD_OVERHEAD + HandshakeRecord.RECORD_OVERHEAD;
-			if (size > maxPayloadSize)
-			{
-
-			}
-			else
-			{
-				DTLSRecord record = CreateRecord(session, handshakeMessage, messageSequence);
-				session.Handshake.MessageSequence++;
-				DTLSRecord recordEnd = CreateRecord(session, new ServerHelloDone(), session.Handshake.MessageSequence);
-				session.Handshake.MessageSequence++;
-				int responseSize = DTLSRecord.RECORD_OVERHEAD + record.Fragment.Length + DTLSRecord.RECORD_OVERHEAD + recordEnd.Fragment.Length;
-
-				byte[] response = new byte[responseSize];
-				using (MemoryStream stream = new MemoryStream(response))
-				{
-					record.Serialise(stream);
-					recordEnd.Serialise(stream);
-				}
+                byte[] response = new byte[responseSize];
+                using (MemoryStream stream = new MemoryStream(response))
+                {
+                    record.Serialise(stream);
+                    recordEnd.Serialise(stream);
+                }
                 SocketAsyncEventArgs parameters = new SocketAsyncEventArgs()
                 {
                     RemoteEndPoint = session.RemoteEndPoint
                 };
                 parameters.SetBuffer(response, 0, responseSize);
                 _Socket.SendToAsync(parameters);
-			}
+            }
 
 
-		}
+        }
 
-		private DTLSRecord CreateRecord(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
-		{
-			int size = handshakeMessage.CalculateSize(session.Version);
+        private DTLSRecord CreateRecord(Session session, IHandshakeMessage handshakeMessage, ushort messageSequence)
+        {
+            int size = handshakeMessage.CalculateSize(session.Version);
             DTLSRecord record = new DTLSRecord
             {
                 RecordType = TRecordType.Handshake,
@@ -596,7 +612,7 @@ namespace DTLS
                 Fragment = new byte[HandshakeRecord.RECORD_OVERHEAD + size]
             };
             if (session.Version != null)
-				record.Version = session.Version;
+                record.Version = session.Version;
             HandshakeRecord handshakeRecord = new HandshakeRecord
             {
                 MessageType = handshakeMessage.MessageType,
@@ -605,28 +621,28 @@ namespace DTLS
                 FragmentLength = (uint)size
             };
             using (MemoryStream stream = new MemoryStream(record.Fragment))
-			{
-				handshakeRecord.Serialise(stream);
-				handshakeMessage.Serialise(stream, session.Version);
-			}
-			if (handshakeMessage.MessageType != THandshakeType.HelloVerifyRequest)
-			{
-				session.Handshake.UpdateHandshakeHash(record.Fragment);
-			}
-			if (session.Cipher != null)
-			{
-				long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
-				record.Fragment = session.Cipher.EncodePlaintext(sequenceNumber, (byte)TRecordType.Handshake, record.Fragment, 0, record.Fragment.Length);
-			}
-			return record;
-		}
+            {
+                handshakeRecord.Serialise(stream);
+                handshakeMessage.Serialise(stream, session.Version);
+            }
+            if (handshakeMessage.MessageType != THandshakeType.HelloVerifyRequest)
+            {
+                session.Handshake.UpdateHandshakeHash(record.Fragment);
+            }
+            if (session.Cipher != null)
+            {
+                long sequenceNumber = ((long)record.Epoch << 48) + record.SequenceNumber;
+                record.Fragment = session.Cipher.EncodePlaintext(sequenceNumber, (byte)TRecordType.Handshake, record.Fragment, 0, record.Fragment.Length);
+            }
+            return record;
+        }
 
 
-		private void SendChangeCipherSpec(Session session)
-		{
-			int size = 1;
-			int responseSize = DTLSRecord.RECORD_OVERHEAD + size;
-			byte[] response = new byte[responseSize];
+        private void SendChangeCipherSpec(Session session)
+        {
+            int size = 1;
+            int responseSize = DTLSRecord.RECORD_OVERHEAD + size;
+            byte[] response = new byte[responseSize];
             DTLSRecord record = new DTLSRecord
             {
                 RecordType = TRecordType.ChangeCipherSpec,
@@ -635,12 +651,12 @@ namespace DTLS
                 Fragment = new byte[size]
             };
             record.Fragment[0] = 1;
-			if (session.Version != null)
-				record.Version = session.Version;
-			using (MemoryStream stream = new MemoryStream(response))
-			{
-				record.Serialise(stream);
-			}
+            if (session.Version != null)
+                record.Version = session.Version;
+            using (MemoryStream stream = new MemoryStream(response))
+            {
+                record.Serialise(stream);
+            }
             SocketAsyncEventArgs parameters = new SocketAsyncEventArgs()
             {
                 RemoteEndPoint = session.RemoteEndPoint
@@ -648,7 +664,7 @@ namespace DTLS
             parameters.SetBuffer(response, 0, responseSize);
             _Socket.SendToAsync(parameters);
             session.ChangeEpoch();
-		}
+        }
 
-	}
+    }
 }

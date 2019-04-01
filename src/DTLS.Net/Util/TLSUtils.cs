@@ -197,6 +197,11 @@ namespace DTLS
 
         public static void WriteToConsole(byte[] data)
         {
+            if (data == null)
+            {
+                Console.WriteLine("null");
+                return;
+            }
             Console.Write("0x");
             foreach (byte item in data)
             {

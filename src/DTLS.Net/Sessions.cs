@@ -48,8 +48,11 @@ namespace DTLS
 			{
 				_SessionsByID.TryAdd(session.SessionID, session);
 				_SessionList.Add(session);
-			}
-		}
+#if DEBUG
+                Console.WriteLine($"Session added. id={session.SessionID} epoch={session.Epoch} identity={session.PSKIdentity}");
+#endif
+            }
+        }
 
 		public Session GetSession(SocketAddress address)
 		{

@@ -138,7 +138,10 @@ namespace DTLS
 
 		public void Serialise(Stream stream)
 		{
-			stream.WriteByte((byte)_RecordType);
+#if DEBUG
+            Console.WriteLine($"Serializing record: type={_RecordType} version={_Version} epoch={_Epoch} sequencenumber={_SequenceNumber} length={_Length}");
+#endif
+            stream.WriteByte((byte)_RecordType);
 			stream.WriteByte((byte)(255 - _Version.Major));
 			stream.WriteByte((byte)(255 - _Version.Minor));
 			NetworkByteOrderConverter.WriteUInt16(stream, _Epoch);

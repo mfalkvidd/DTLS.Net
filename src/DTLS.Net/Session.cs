@@ -63,6 +63,9 @@ namespace DTLS
         {
             this.Handshake = new HandshakeInfo();
             Records = new DTLSRecords();
+#if DEBUG
+            Console.WriteLine($"New session created.");
+#endif
         }
 
 
@@ -99,6 +102,10 @@ namespace DTLS
             CertificateInfo = null;
             Records.Clear();
             this.Handshake = new HandshakeInfo();
+#if DEBUG
+            Console.WriteLine($"Session reset");
+#endif
+
         }
 
         internal void SetEncyptChange(DTLSRecord record)
