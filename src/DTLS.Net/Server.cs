@@ -20,20 +20,20 @@
  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***********************************************************************************************************************/
 
+using Org.BouncyCastle.Utilities.IO.Pem;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
-using Org.BouncyCastle.Utilities.IO.Pem;
 
 namespace DTLS
 {
-	public class Server
-	{
+    public class Server
+    {
         public delegate void DataReceivedEventHandler(System.Net.EndPoint endPoint, byte[] data);
         public event DataReceivedEventHandler DataReceived;
 
@@ -42,14 +42,14 @@ namespace DTLS
 
         private int _ReceiveBufferSize;
         private int _SendBufferSize;
-		private int _MaxPacketSize = 1440;
-		private Socket _Socket;
-		private EndPoint _LocalEndPoint;
-		private ServerHandshake _Handshake;
-		private List<TCipherSuite> _SupportedCipherSuites;
-		private Certificate _Certificate;
-		private Org.BouncyCastle.Crypto.AsymmetricKeyParameter _PrivateKey;
-		private Sessions _Sessions;
+        private int _MaxPacketSize = 1440;
+        private Socket _Socket;
+        private EndPoint _LocalEndPoint;
+        private ServerHandshake _Handshake;
+        private List<TCipherSuite> _SupportedCipherSuites;
+        private Certificate _Certificate;
+        private Org.BouncyCastle.Crypto.AsymmetricKeyParameter _PrivateKey;
+        private Sessions _Sessions;
         private PSKIdentities _PSKIdentities;
         private bool _RequireClientCertificate;
 
@@ -58,22 +58,22 @@ namespace DTLS
             get { return _LocalEndPoint; }
         }
 
-		public int MaxPacketSize
-		{
-			get { return _MaxPacketSize; }
-			set { _MaxPacketSize = value; }
-		}
+        public int MaxPacketSize
+        {
+            get { return _MaxPacketSize; }
+            set { _MaxPacketSize = value; }
+        }
 
         public PSKIdentities PSKIdentities
-		{
+        {
             get { return _PSKIdentities; }
             set { _PSKIdentities = value; }
-		}       
+        }
 
         public int ReceiveBufferSize
         {
             get { return _ReceiveBufferSize; }
-            set 
+            set
             {
                 _ReceiveBufferSize = value;
                 if (_Socket != null)
@@ -85,13 +85,13 @@ namespace DTLS
         {
             get { return _RequireClientCertificate; }
             set { _RequireClientCertificate = value; }
-        }       
+        }
 
         public int SendBufferSize
         {
             get { return _SendBufferSize; }
-            set 
-            { 
+            set
+            {
                 _SendBufferSize = value;
                 if (_Socket != null)
                     _Socket.SendBufferSize = value;
@@ -107,13 +107,13 @@ namespace DTLS
             }
         }
 
-		public Server(EndPoint localEndPoint)
-		{
-			_LocalEndPoint = localEndPoint;
-			_Sessions = new Sessions();
+        public Server(EndPoint localEndPoint)
+        {
+            _LocalEndPoint = localEndPoint;
+            _Sessions = new Sessions();
             _PSKIdentities = new PSKIdentities();
             _SupportedCipherSuites = new List<TCipherSuite>();
-		}
+        }
 
         public Server(EndPoint localEndPoint, List<TCipherSuite> supportedCipherSuites)
         {
@@ -125,6 +125,9 @@ namespace DTLS
 
         private void CheckSession(Session session, DTLSRecord record)
         {
+#if DEBUG
+            Console.WriteLine($"CheckSession: session.ID={session?.SessionID} session.ClientEpoch={session?.ClientEpoch} session.ClientSN={session?.ClientSequenceNumber} record.Epoch={record?.Epoch} record.SN={record?.SequenceNumber}");
+#endif
             if ((session.ClientEpoch == record.Epoch) && (session.ClientSequenceNumber == record.SequenceNumber))
             {
                 ThreadPool.QueueUserWorkItem(ProcessRecord, record);
@@ -156,32 +159,32 @@ namespace DTLS
             }
         }
 
-		public void LoadCertificateFromPem(string filename)
-		{
-			using (FileStream stream = File.OpenRead(filename))
-			{
-				LoadCertificateFromPem(stream);
-			}
-		}
+        public void LoadCertificateFromPem(string filename)
+        {
+            using (FileStream stream = File.OpenRead(filename))
+            {
+                LoadCertificateFromPem(stream);
+            }
+        }
 
-		public void LoadCertificateFromPem(Stream stream)
-		{
-			List<byte[]> chain = new List<byte[]>();
-			PemReader reader = new PemReader(new StreamReader(stream));
-			PemObject pem = reader.ReadPemObject();
+        public void LoadCertificateFromPem(Stream stream)
+        {
+            List<byte[]> chain = new List<byte[]>();
+            PemReader reader = new PemReader(new StreamReader(stream));
+            PemObject pem = reader.ReadPemObject();
 
-			while (pem != null)
-			{
-				if (pem.Type.EndsWith("CERTIFICATE"))
-				{
-					chain.Add(pem.Content);
-				}
+            while (pem != null)
+            {
+                if (pem.Type.EndsWith("CERTIFICATE"))
+                {
+                    chain.Add(pem.Content);
+                }
                 else if (pem.Type.EndsWith("PRIVATE KEY"))
                 {
                     _PrivateKey = Certificates.GetPrivateKeyFromPEM(pem);
                 }
-				pem = reader.ReadPemObject();
-			}
+                pem = reader.ReadPemObject();
+            }
             _Certificate = new Certificate
             {
                 CertChain = chain,
@@ -290,7 +293,9 @@ namespace DTLS
             try
             {
 #if DEBUG
-            Console.WriteLine(record.RecordType.ToString());
+                Console.WriteLine($"RecordType={record.RecordType.ToString()} sessionID={session?.SessionID} remoteEndPoint={record?.RemoteEndPoint}");
+                Console.Write("Data: ");
+                TLSUtils.WriteToConsole(record?.Fragment);
 #endif
                 switch (record.RecordType)
                 {
@@ -366,8 +371,8 @@ namespace DTLS
             }
         }
 
-         private void ReceiveCallback(object sender, SocketAsyncEventArgs e)
-		{
+        private void ReceiveCallback(object sender, SocketAsyncEventArgs e)
+        {
             if (e.BytesTransferred == 0)
             {
 
@@ -408,11 +413,11 @@ namespace DTLS
                     socket.ReceiveFromAsync(e);
                 }
             }
-		}
-               
-		private Socket SetupSocket(AddressFamily addressFamily)
-		{
-			Socket result = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
+        }
+
+        private Socket SetupSocket(AddressFamily addressFamily)
+        {
+            Socket result = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp);
             if (addressFamily == AddressFamily.InterNetworkV6)
             {
                 result.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, true);
@@ -423,8 +428,8 @@ namespace DTLS
                 const Int32 SIO_UDP_CONNRESET = -1744830452;
                 result.IOControl(SIO_UDP_CONNRESET, new Byte[] { 0 }, null);
             }
-			return result;
-		}
+            return result;
+        }
 
         public void Send(EndPoint remoteEndPoint, byte[] data)
         {
@@ -458,9 +463,9 @@ namespace DTLS
                     _Socket.SendToAsync(parameters);
                 }
 #if DEBUG
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
 #else
                 catch
                 {
@@ -505,8 +510,8 @@ namespace DTLS
             }
         }
 
-		public void Start()
-		{
+        public void Start()
+        {
             if (_SupportedCipherSuites.Count == 0)
             {
                 _SupportedCipherSuites.Add(TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8); //Test 1.2
@@ -518,8 +523,8 @@ namespace DTLS
 
             _Socket = SetupSocket(_LocalEndPoint.AddressFamily);
 
-			if (_Socket != null)
-			{
+            if (_Socket != null)
+            {
                 _Handshake = new ServerHandshake(_Socket, _MaxPacketSize, _PSKIdentities, _SupportedCipherSuites, _RequireClientCertificate, ValidatePSK)
                 {
                     Certificate = _Certificate,
@@ -527,10 +532,10 @@ namespace DTLS
                     Sessions = _Sessions
                 };
                 _Socket.Bind(_LocalEndPoint);
-				StartReceive(_Socket);
-			}
+                StartReceive(_Socket);
+            }
 
-		}
+        }
 
         private void StartReceive(Socket socket)
         {
@@ -544,14 +549,14 @@ namespace DTLS
             socket.ReceiveFromAsync(parameters);
         }
 
-		public void Stop()
-		{
-			if (_Socket != null)
-			{
-				_Socket.Dispose();
-				_Socket = null;
-			}
-		}
+        public void Stop()
+        {
+            if (_Socket != null)
+            {
+                _Socket.Dispose();
+                _Socket = null;
+            }
+        }
 
-	}
+    }
 }
