@@ -53,8 +53,17 @@ namespace DTLS
 
 		public Session GetSession(SocketAddress address)
 		{
-			Session result;
-			_Sessions.TryGetValue(address, out result);
+            Session result;
+            _Sessions.TryGetValue(address, out result);
+#if DEBUG
+            /*
+            Console.WriteLine($"GetSession was called with address {address} and got result {result?.SessionID}. Sessions length is {_Sessions.Count}");
+            foreach(KeyValuePair<SocketAddress, Session> session in _Sessions)
+            {
+                Console.WriteLine($"Key={session.Key} Value={session.Value?.SessionID}");
+            }
+            */
+#endif
 			return result;
 		}
 

@@ -31,6 +31,7 @@ using Org.BouncyCastle.Crypto.Tls;
 using Org.BouncyCastle.Crypto;
 using System.Threading;
 using Org.BouncyCastle.Utilities.IO.Pem;
+using System.Diagnostics;
 
 namespace DTLS
 {
@@ -411,6 +412,10 @@ namespace DTLS
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                StackFrame callStack = new StackFrame(1, true);
+                Console.WriteLine($"Exception! Type: { ex.GetType()}\n\tData: { ex.Data.Count}\n\tMessage: { ex.Message}\n\tSource: { ex.Source}\n\t" +
+                    $"StackTrace: { ex.StackTrace}\n\tFile: {callStack.GetFileName()}\n\t" + 
+                    $"Line: {callStack.GetFileLineNumber()}");
 #else
             catch
             {
@@ -537,6 +542,10 @@ namespace DTLS
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                StackFrame callStack = new StackFrame(1, true);
+                Console.WriteLine($"Exception! Type: { ex.GetType()}\n\tData: { ex.Data.Count}\n\tMessage: { ex.Message}\n\tSource: { ex.Source}\n\t" +
+                    $"StackTrace: { ex.StackTrace}\n\tFile: {callStack.GetFileName()}\n\t" +
+                    $"Line: {callStack.GetFileLineNumber()}");
 #else
             catch
             {

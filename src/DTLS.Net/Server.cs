@@ -29,6 +29,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Org.BouncyCastle.Utilities.IO.Pem;
+using System.Diagnostics;
 
 namespace DTLS
 {
@@ -216,6 +218,10 @@ namespace DTLS
         {
             if (state is DTLSRecord record)
             {
+#if DEBUG
+                //Console.WriteLine($"ProcessRecord got {record}");
+#endif
+
                 SocketAddress address = null;
                 Session session = null;
                 try
@@ -224,6 +230,9 @@ namespace DTLS
                     session = _Sessions.GetSession(address);
                     if (session == null)
                     {
+#if DEBUG
+                        //Console.WriteLine($"First");
+#endif
                         ProcessRecord(address, session, record);
                         session = _Sessions.GetSession(address);
                         if (session != null)
@@ -254,6 +263,9 @@ namespace DTLS
                         {
                             do
                             {
+#if DEBUG
+                                //Console.WriteLine($"Second");
+#endif
                                 ProcessRecord(address, session, record);
                                 lock (session)
                                 {
@@ -363,6 +375,10 @@ namespace DTLS
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                StackFrame callStack = new StackFrame(1, true);
+                Console.WriteLine($"Exception! Type: { ex.GetType()}\n\tData: { ex.Data.Count}\n\tMessage: { ex.Message}\n\tSource: { ex.Source}\n\t" +
+                    $"StackTrace: { ex.StackTrace}\n\tFile: {callStack.GetFileName()}\n\t" +
+                    $"Line: {callStack.GetFileLineNumber()}");
 #else
             catch
             {
@@ -463,9 +479,13 @@ namespace DTLS
                     _Socket.SendToAsync(parameters);
                 }
 #if DEBUG
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                    StackFrame callStack = new StackFrame(1, true);
+                    Console.WriteLine($"Exception! Type: { ex.GetType()}\n\tData: { ex.Data.Count}\n\tMessage: { ex.Message}\n\tSource: { ex.Source}\n\t" +
+                        $"StackTrace: { ex.StackTrace}\n\tFile: {callStack.GetFileName()}\n\t" +
+                        $"Line: {callStack.GetFileLineNumber()}");
 #else
                 catch
                 {
@@ -560,3 +580,4 @@ namespace DTLS
 
     }
 }
+

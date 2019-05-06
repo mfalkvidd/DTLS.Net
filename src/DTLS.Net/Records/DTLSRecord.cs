@@ -149,5 +149,11 @@ namespace DTLS
 				stream.Write(_Fragment, 0, _Length);
 			}
 		}
-	}
+
+        public override string ToString()
+        {
+            return $"DTLSRecord Epoch={Epoch} FragmentLength={Fragment?.Length} RecordType={RecordType} " +
+                $"RemoteEndpoint={RemoteEndPoint} SequenceNumber={SequenceNumber} Version={Version}";
+        }
+    }
 }

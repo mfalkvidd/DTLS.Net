@@ -66,6 +66,9 @@ namespace DTLS
 
         public void ProcessHandshake(DTLSRecord record)
         {
+#if DEBUG
+            Console.WriteLine($"ProcessHandshake got {record}");
+#endif
             SocketAddress address = record.RemoteEndPoint.Serialize();
             Session session = Sessions.GetSession(address);
             byte[] data;
