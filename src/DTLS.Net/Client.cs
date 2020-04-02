@@ -302,10 +302,8 @@ namespace DTLS
                             };
                             SendHandshakeMessage(finished, true);
 #if DEBUG
-                            Console.Write("Handshake Hash:");
-                            TLSUtils.WriteToConsole(handshakeHash);
-                            Console.Write("Sent Verify:");
-                            TLSUtils.WriteToConsole(finished.VerifyData);
+                            Console.Write($"Handshake Hash: {TLSUtils.WriteToString(handshakeHash)}");
+                            Console.Write($"Sent Verify: {TLSUtils.WriteToString(finished.VerifyData)}");
 #endif
                             break;
                         case THandshakeType.CertificateVerify:
@@ -317,10 +315,8 @@ namespace DTLS
                             handshakeHash = _HandshakeInfo.GetHash();
                             byte[] calculatedVerifyData = TLSUtils.GetVerifyData(_Version,_HandshakeInfo, true, false, handshakeHash);
 #if DEBUG
-                            Console.Write("Recieved Verify:");
-                            TLSUtils.WriteToConsole(serverFinished.VerifyData);
-                            Console.Write("Calc Verify:");
-                            TLSUtils.WriteToConsole(calculatedVerifyData);
+                            Console.Write("$Recieved Verify: {TLSUtils.WriteToString(serverFinished.VerifyData)}");
+                            Console.Write($"Calc Verify: {TLSUtils.WriteToString(calculatedVerifyData)}");
 #endif
                             if (TLSUtils.ByteArrayCompare(serverFinished.VerifyData, calculatedVerifyData))
                             {

@@ -29,18 +29,18 @@ using Org.BouncyCastle.Crypto.Tls;
 namespace DTLS
 {
     internal class TLSUtils
-	{
+    {
         public static DateTime UnixEpoch = new DateTime(1970, 1, 1);
 
-		private static byte[] MASTER_SECRET_LABEL;
-		private const int MASTER_SECRET_LENGTH = 48;
-		private static TlsCipherFactory CipherFactory;
+        private static byte[] MASTER_SECRET_LABEL;
+        private const int MASTER_SECRET_LENGTH = 48;
+        private static TlsCipherFactory CipherFactory;
 
-		static TLSUtils()
-		{
-			MASTER_SECRET_LABEL = Encoding.ASCII.GetBytes("master secret");
-			CipherFactory = new DefaultTlsCipherFactory();
-		}
+        static TLSUtils()
+        {
+            MASTER_SECRET_LABEL = Encoding.ASCII.GetBytes("master secret");
+            CipherFactory = new DefaultTlsCipherFactory();
+        }
 
         public static bool ByteArrayCompare(byte[] x, byte[] y)
         {
@@ -59,71 +59,71 @@ namespace DTLS
             else
                 result = false;
             return result;
-        }      
+        }
 
-		public static byte[] CalculateMasterSecret(byte[] preMasterSecret, IKeyExchange keyExchange)
-		{
-			byte[] result;
-			byte[] clientRandom = keyExchange.ClientRandom.Serialise();
-			byte[] serverRandom = keyExchange.ServerRandom.Serialise();
-			byte[] seed = new byte[MASTER_SECRET_LABEL.Length + clientRandom.Length + serverRandom.Length];
-			Buffer.BlockCopy(MASTER_SECRET_LABEL, 0, seed, 0, MASTER_SECRET_LABEL.Length);
-			Buffer.BlockCopy(clientRandom, 0, seed, MASTER_SECRET_LABEL.Length, clientRandom.Length);
-			Buffer.BlockCopy(serverRandom, 0, seed, MASTER_SECRET_LABEL.Length + clientRandom.Length, serverRandom.Length);
-			result = PseudorandomFunction(preMasterSecret, seed, MASTER_SECRET_LENGTH);
-			Array.Clear(preMasterSecret, 0, preMasterSecret.Length);
-			return result;
-		}
-              
-		public static byte[] PseudorandomFunction(byte[] secret, byte[] seed, int length)
-		{
-			byte[] result = new byte[length];
-			System.Security.Cryptography.HMACSHA256 hmac = new System.Security.Cryptography.HMACSHA256(secret);
-			int iterations = (int)Math.Ceiling(length / (double)hmac.HashSize);
-			byte[] dataToHash = seed;
-			int offset = 0;
-			for (int index = 0; index < iterations; index++)
-			{
-				dataToHash = hmac.ComputeHash(dataToHash);
-				hmac.TransformBlock(dataToHash, 0, dataToHash.Length, dataToHash, 0);
-				byte[] hash = hmac.TransformFinalBlock(seed, 0, seed.Length);
-				Buffer.BlockCopy(hash, 0, result, offset, Math.Min(hash.Length, length - offset));
-				offset += hash.Length;
-			}
-			return result;
-		}
+        public static byte[] CalculateMasterSecret(byte[] preMasterSecret, IKeyExchange keyExchange)
+        {
+            byte[] result;
+            byte[] clientRandom = keyExchange.ClientRandom.Serialise();
+            byte[] serverRandom = keyExchange.ServerRandom.Serialise();
+            byte[] seed = new byte[MASTER_SECRET_LABEL.Length + clientRandom.Length + serverRandom.Length];
+            Buffer.BlockCopy(MASTER_SECRET_LABEL, 0, seed, 0, MASTER_SECRET_LABEL.Length);
+            Buffer.BlockCopy(clientRandom, 0, seed, MASTER_SECRET_LABEL.Length, clientRandom.Length);
+            Buffer.BlockCopy(serverRandom, 0, seed, MASTER_SECRET_LABEL.Length + clientRandom.Length, serverRandom.Length);
+            result = PseudorandomFunction(preMasterSecret, seed, MASTER_SECRET_LENGTH);
+            Array.Clear(preMasterSecret, 0, preMasterSecret.Length);
+            return result;
+        }
 
-		private static int GetEncryptionAlgorithm(TCipherSuite cipherSuite)
-		{
-			int result = 0;
-			if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8)
-				result = EncryptionAlgorithm.AES_128_CCM_8;
-			else if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256)
-				result = EncryptionAlgorithm.AES_128_CBC;
-			else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CCM_8)
-				result = EncryptionAlgorithm.AES_128_CCM_8;
-			else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
-				result = EncryptionAlgorithm.AES_128_CBC;
-			else if (cipherSuite == TCipherSuite.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256)
-				result = EncryptionAlgorithm.AES_128_CBC;
-			return result;
-		}
+        public static byte[] PseudorandomFunction(byte[] secret, byte[] seed, int length)
+        {
+            byte[] result = new byte[length];
+            System.Security.Cryptography.HMACSHA256 hmac = new System.Security.Cryptography.HMACSHA256(secret);
+            int iterations = (int)Math.Ceiling(length / (double)hmac.HashSize);
+            byte[] dataToHash = seed;
+            int offset = 0;
+            for (int index = 0; index < iterations; index++)
+            {
+                dataToHash = hmac.ComputeHash(dataToHash);
+                hmac.TransformBlock(dataToHash, 0, dataToHash.Length, dataToHash, 0);
+                byte[] hash = hmac.TransformFinalBlock(seed, 0, seed.Length);
+                Buffer.BlockCopy(hash, 0, result, offset, Math.Min(hash.Length, length - offset));
+                offset += hash.Length;
+            }
+            return result;
+        }
 
-		private static int GetMACAlgorithm(TCipherSuite cipherSuite)
-		{
-			int result = 0;
-			if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8)
-				result = MacAlgorithm.cls_null;
-			else if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256)
-				result = MacAlgorithm.hmac_sha256;
-			else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CCM_8)
-				result = MacAlgorithm.cls_null;
-			else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
-				result = MacAlgorithm.hmac_sha256;
-			else if (cipherSuite == TCipherSuite.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256)
-				result = MacAlgorithm.hmac_sha256;
-			return result;
-		}
+        private static int GetEncryptionAlgorithm(TCipherSuite cipherSuite)
+        {
+            int result = 0;
+            if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8)
+                result = EncryptionAlgorithm.AES_128_CCM_8;
+            else if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256)
+                result = EncryptionAlgorithm.AES_128_CBC;
+            else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CCM_8)
+                result = EncryptionAlgorithm.AES_128_CCM_8;
+            else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
+                result = EncryptionAlgorithm.AES_128_CBC;
+            else if (cipherSuite == TCipherSuite.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256)
+                result = EncryptionAlgorithm.AES_128_CBC;
+            return result;
+        }
+
+        private static int GetMACAlgorithm(TCipherSuite cipherSuite)
+        {
+            int result = 0;
+            if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8)
+                result = MacAlgorithm.cls_null;
+            else if (cipherSuite == TCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256)
+                result = MacAlgorithm.hmac_sha256;
+            else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CCM_8)
+                result = MacAlgorithm.cls_null;
+            else if (cipherSuite == TCipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
+                result = MacAlgorithm.hmac_sha256;
+            else if (cipherSuite == TCipherSuite.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256)
+                result = MacAlgorithm.hmac_sha256;
+            return result;
+        }
 
         public static TlsCipher AssignCipher(byte[] preMasterSecret, bool client, Version version, HandshakeInfo handshakeInfo)
         {
@@ -136,16 +136,14 @@ namespace DTLS
             handshakeInfo.MasterSecret = TlsUtilities.PRF(context, preMasterSecret, asciiLabel, seed, 48);
             //session.Handshake.MasterSecret = TlsUtilities.PRF_legacy(preMasterSecret, asciiLabel, seed, 48);
 #if DEBUG
-            Console.Write("MasterSecret :");
-            WriteToConsole(handshakeInfo.MasterSecret);
+            Console.Write($"MasterSecret: {WriteToString(handshakeInfo.MasterSecret)}");
 #endif
 
             seed = Concat(securityParameters.ServerRandom, securityParameters.ClientRandom);
             byte[] key_block = TlsUtilities.PRF(context, handshakeInfo.MasterSecret, ExporterLabel.key_expansion, seed, 96);
             //byte[] key_block = TlsUtilities.PRF_legacy(session.Handshake.MasterSecret, ExporterLabel.key_expansion, seed, 96);
 #if DEBUG
-            Console.Write("Key block :");
-            WriteToConsole(key_block);
+            Console.Write($"Key block: {WriteToString(key_block)}");
 #endif
             return CipherFactory.CreateCipher(context, encryptionAlgorithm, macAlgorithm);
         }
@@ -188,12 +186,12 @@ namespace DTLS
 
 
         internal static byte[] Concat(byte[] a, byte[] b)
-		{
-			byte[] c = new byte[a.Length + b.Length];
-			Array.Copy(a, 0, c, 0, a.Length);
-			Array.Copy(b, 0, c, a.Length, b.Length);
-			return c;
-		}
+        {
+            byte[] c = new byte[a.Length + b.Length];
+            Array.Copy(a, 0, c, 0, a.Length);
+            Array.Copy(b, 0, c, a.Length, b.Length);
+            return c;
+        }
 
         public static void WriteToConsole(byte[] data)
         {
@@ -201,13 +199,26 @@ namespace DTLS
             foreach (byte item in data)
             {
                 byte b = ((byte)(item >> 4));
-				Console.Write((char)(b > 9 ? b + 0x37 : b + 0x30));
+                Console.Write((char)(b > 9 ? b + 0x37 : b + 0x30));
                 b = ((byte)(item & 0xF));
-				Console.Write((char)(b > 9 ? b + 0x37 : b + 0x30));
-            } 
+                Console.Write((char)(b > 9 ? b + 0x37 : b + 0x30));
+            }
             Console.WriteLine();
         }
 
+        public static string WriteToString(byte[] data)
+        {
+            StringBuilder s = new StringBuilder("0x");
+            foreach (byte item in data)
+            {
+                byte b = ((byte)(item >> 4));
+                s.Append((char)(b > 9 ? b + 0x37 : b + 0x30));
+                b = ((byte)(item & 0xF));
+                s.Append((char)(b > 9 ? b + 0x37 : b + 0x30));
+            }
+            s.AppendLine();
+            return s.ToString();
+        }
         public static byte[] GetVerifyData(Version version, HandshakeInfo handshakeInfo, bool client, bool isClientFinished, byte[] handshakeHash)
         {
             string asciiLabel;

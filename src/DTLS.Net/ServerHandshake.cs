@@ -67,7 +67,7 @@ namespace DTLS
         public void ProcessHandshake(DTLSRecord record)
         {
 #if DEBUG
-            Console.WriteLine($"ProcessHandshake got {record}");
+            Console.WriteLine($"> ProcessHandshake got {record}");
 #endif
             SocketAddress address = record.RemoteEndPoint.Serialize();
             Session session = Sessions.GetSession(address);
@@ -449,6 +449,9 @@ namespace DTLS
                                     //TLSUtils.AssignCipher(session);
 
                                     session.Cipher = TLSUtils.AssignCipher(preMasterSecret, false, session.Version, session.Handshake);
+                                } else
+                                {
+                                    Console.WriteLine($"preMasterSecret is null!");
                                 }
                             }
                             break;
@@ -459,12 +462,9 @@ namespace DTLS
                                 byte[] handshakeHash = session.Handshake.GetHash();
                                 byte[] calculatedVerifyData = TLSUtils.GetVerifyData(session.Version,session.Handshake,false, true, handshakeHash);
 #if DEBUG
-                                Console.Write("Handshake Hash:");
-                                TLSUtils.WriteToConsole(handshakeHash);
-                                Console.Write("Sent Verify:");
-                                TLSUtils.WriteToConsole(finished.VerifyData);
-                                Console.Write("Calc Verify:");
-                                TLSUtils.WriteToConsole(calculatedVerifyData);
+                                Console.Write($"Handshake Hash: {TLSUtils.WriteToString(handshakeHash)}");
+                                Console.Write($"Sent Verify: {TLSUtils.WriteToString(finished.VerifyData)}");
+                                Console.Write($"Calc Verify: {TLSUtils.WriteToString(calculatedVerifyData)}");
 #endif
                                 if (TLSUtils.ByteArrayCompare(finished.VerifyData, calculatedVerifyData))
                                 {

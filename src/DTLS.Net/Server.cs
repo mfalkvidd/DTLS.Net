@@ -132,27 +132,51 @@ namespace DTLS
 #endif
             if ((session.ClientEpoch == record.Epoch) && (session.ClientSequenceNumber == record.SequenceNumber))
             {
+#if DEBUG
+                Console.WriteLine($"QueueUserWorkItem");
+#endif
                 ThreadPool.QueueUserWorkItem(ProcessRecord, record);
             }
             else if (session.ClientEpoch > record.Epoch)
             {
+#if DEBUG
+                Console.WriteLine($"QueueUserWorkItem {session.ClientEpoch} > {record.Epoch}");
+#endif
                 ThreadPool.QueueUserWorkItem(ProcessRecord, record);
             }
             else if ((session.ClientEpoch == record.Epoch) && (session.ClientSequenceNumber > record.SequenceNumber))
             {
+#if DEBUG
+                Console.WriteLine($"QueueUserWorkItem {session.ClientEpoch} == {record.Epoch}) && ({session.ClientSequenceNumber} > {record.SequenceNumber}");
+#endif
                 ThreadPool.QueueUserWorkItem(ProcessRecord, record);
             }
             else
             {
                 bool canProcessNow = false;
+#if DEBUG
+                Console.WriteLine($"Getting lock");
+#endif
                 lock (session)
                 {
+#if DEBUG
+                    Console.WriteLine($"Got lock");
+#endif
+
                     if ((session.ClientSequenceNumber == record.SequenceNumber) && (session.ClientEpoch == record.Epoch))
                     {
                         canProcessNow = true;
+#if DEBUG
+                        Console.WriteLine($"can process now");
+#endif
+
                     }
                     else
                     {
+#if DEBUG
+                        Console.WriteLine($"Adding record");
+#endif
+
                         session.Records.Add(record);
                     }
                 }
@@ -219,7 +243,7 @@ namespace DTLS
             if (state is DTLSRecord record)
             {
 #if DEBUG
-                //Console.WriteLine($"ProcessRecord got {record}");
+                Console.WriteLine($"ProcessRecord got {record}");
 #endif
 
                 SocketAddress address = null;
@@ -231,7 +255,7 @@ namespace DTLS
                     if (session == null)
                     {
 #if DEBUG
-                        //Console.WriteLine($"First");
+                        Console.WriteLine($"First");
 #endif
                         ProcessRecord(address, session, record);
                         session = _Sessions.GetSession(address);
@@ -264,7 +288,7 @@ namespace DTLS
                             do
                             {
 #if DEBUG
-                                //Console.WriteLine($"Second");
+                                Console.WriteLine($"if processRecord do");
 #endif
                                 ProcessRecord(address, session, record);
                                 lock (session)
@@ -277,6 +301,9 @@ namespace DTLS
                                 {
                                     if ((session.ClientSequenceNumber == record.SequenceNumber) && (session.ClientEpoch == record.Epoch))
                                     {
+#if DEBUG
+                                        Console.WriteLine($"Removing record");
+#endif
                                         session.Records.RemoveRecord();
                                     }
                                     else
@@ -305,9 +332,8 @@ namespace DTLS
             try
             {
 #if DEBUG
-                Console.WriteLine($"RecordType={record.RecordType.ToString()} sessionID={session?.SessionID} remoteEndPoint={record?.RemoteEndPoint}");
-                Console.Write("Data: ");
-                TLSUtils.WriteToConsole(record?.Fragment);
+                Console.WriteLine($"> RecordType={record.RecordType.ToString()} sessionID={session?.SessionID} remoteEndPoint={record?.RemoteEndPoint}");
+                Console.Write($"Data: {TLSUtils.WriteToString(record?.Fragment)}");
 #endif
                 switch (record.RecordType)
                 {
@@ -391,11 +417,17 @@ namespace DTLS
         {
             if (e.BytesTransferred == 0)
             {
-
+#if DEBUG
+                Console.WriteLine($"ReceiveCallback got 0 bytes");
+#endif
             }
             else
             {
                 int count = e.BytesTransferred;
+#if DEBUG
+                Console.WriteLine($"ReceiveCallback got {count} bytes");
+#endif
+
                 byte[] data = new byte[count];
                 Buffer.BlockCopy(e.Buffer, 0, data, 0, count);
                 MemoryStream stream = new MemoryStream(data);
@@ -409,6 +441,9 @@ namespace DTLS
                         Session session = _Sessions.GetSession(address);
                         if (session == null)
                         {
+#if DEBUG
+                            Console.WriteLine($"session was null");
+#endif
                             ThreadPool.QueueUserWorkItem(ProcessRecord, record);
                         }
                         else
@@ -496,6 +531,9 @@ namespace DTLS
 
         private void SendAlert(Session session, SocketAddress address, TAlertLevel alertLevel, TAlertDescription alertDescription)
         {
+#if DEBUG
+            Console.WriteLine($"Alert! {alertDescription}");
+#endif
             if (session != null)
             {
                 DTLSRecord record = new DTLSRecord
@@ -542,7 +580,9 @@ namespace DTLS
             }
 
             _Socket = SetupSocket(_LocalEndPoint.AddressFamily);
-
+#if DEBUG
+            Console.WriteLine($"Socket setup complete");
+#endif
             if (_Socket != null)
             {
                 _Handshake = new ServerHandshake(_Socket, _MaxPacketSize, _PSKIdentities, _SupportedCipherSuites, _RequireClientCertificate, ValidatePSK)
@@ -552,6 +592,9 @@ namespace DTLS
                     Sessions = _Sessions
                 };
                 _Socket.Bind(_LocalEndPoint);
+#if DEBUG
+                Console.WriteLine($"Socket bind complete");
+#endif
                 StartReceive(_Socket);
             }
 
@@ -560,13 +603,23 @@ namespace DTLS
         private void StartReceive(Socket socket)
         {
             SocketAsyncEventArgs parameters = new SocketAsyncEventArgs();
+#if DEBUG
+            Console.WriteLine($"StartReceive");
+#endif
+
             if (socket.AddressFamily == AddressFamily.InterNetwork)
                 parameters.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
             else
                 parameters.RemoteEndPoint = new IPEndPoint(IPAddress.IPv6Any, 0);
             parameters.Completed += new EventHandler<SocketAsyncEventArgs>(ReceiveCallback);
+#if DEBUG
+            Console.WriteLine($"StartReceive added event handler");
+#endif
             parameters.SetBuffer(new byte[4096], 0, 4096);
             socket.ReceiveFromAsync(parameters);
+#if DEBUG
+            Console.WriteLine($"StartReceive ReceiveFromAsync has returned");
+#endif
         }
 
         public void Stop()
